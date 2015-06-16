@@ -20,6 +20,9 @@ track = '#Fotoprojekt2015'
 # If it does not exist yet, it is attempted to be created.
 archive_dir = "archive"
 
+# Whether to archive attached media files (of type photo) or not.
+archive_photos = False
+
 # The list of approved twitter users with additional rights.
 approved_list = { 
   'name': 'Approved',
@@ -38,3 +41,5 @@ dry_run = False
 # This is limited to 100 by the Twitter API. Also, don't count on getting that many.
 # Don't set this to less than 5.
 read_back = 100
+
+

@@ -75,8 +75,8 @@ def update_block_list():
     try:
         blocked = twitter.list_block_ids()['ids']
         log.info("Updated block list.")
-    except:
-        log.warning("Could not update block list.")
+    except Exception as e:
+        log.warning("Could not update block list: %s", str(e))
     new = list(set(blocked) - set(old_blocked))
     if len(new) > 0:
         find_and_delete_blocked_retweets()
@@ -116,10 +116,9 @@ def run_queue():
                 if not config.dry_run:
                     func(*args, **kwargs)
             except Exception as e:
-                log.warn(str(e), exc_info=True)
                 if isinstance(e, TwythonError) and e.error_code == 403:
                     log.warn("Twitter says I did %s already." % _fmt(func, args, kwargs))
-                    _fail[t] = (func, args, kwargs)
+                    #_fail[t] = (func, args, kwargs)
                 elif isinstance(e, TwythonRateLimitError):
                     log.warn("Twitter says I hit the Rate Limit with %s. Re-queuing." % _fmt(func, args, kwargs))
                     _queue.insert(0, (tries, (func, args, kwargs)) )
@@ -127,6 +126,7 @@ def run_queue():
                         time.sleep(int(e.retry_after))
                     queuelock.release()
                 elif tries < 3:
+                    log.error(str(e), exc_info=True)
                     _queue.append( (tries+1, (func, args, kwargs)) )
                     _fail[t] = (func, args, kwargs)
                     log.warn("Try #%s of %s from queue failed, re-queuing." % (tries+1, _fmt(func, args, kwargs)))
@@ -187,7 +187,7 @@ def save(data):
     except Exception as e:
         log.error("Archive file %s cannot be created or is not writable: %s" % (filename + '.json', str(e)))
         return
-    if data['entities'].has_key('media'):
+    if config.archive_photos and data['entities'].has_key('media'):
         for i,m in enumerate(data['entities']['media']):
             mediafile = '.'.join((filename, str(i), m['media_url_https'].split('.')[-1]))
             mediaurl = ':'.join((m['media_url_https'], 'orig'))

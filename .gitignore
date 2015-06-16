@@ -35,5 +35,10 @@ nosetests.xml
 .project
 .pydevproject
 
+# Joe backup files
+*~
+
 # credential files
 config.py
+archive
+*.log*
