@@ -35,6 +35,7 @@ friends = []
 listmembers = []
 blocked = []
 twitter = None
+user_screenname = ''
 
 def update_friends(friendlist):
     global friends
@@ -168,8 +169,9 @@ def tweet(tweettext):
         queue(twitter.update_status, status=tweettext[0:140])
 
 def save(data):
+    user = data['retweeted_status']['user'] if 'retweeted_status' in data else data['user']
     basedirname = os.path.join(config.archive_dir, data['id_str'][:-15].zfill(6))
-    basefilename = '-'.join((data['id_str'], data['user']['screen_name']))
+    basefilename = '-'.join((data['id_str'], user['screen_name']))
     filename = os.path.join(basedirname, basefilename)
     if os.path.isfile(filename + '.json'):
         log.info("Archive file %s.json for tweet %s already exists." % (filename, data['id']))
@@ -199,13 +201,15 @@ def save(data):
                     log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
 
 def decide(data):
-    if 'text' in data:
+    if 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
+        save(data)
+    elif 'text' in data:
         log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
         if data['user']['id'] in blocked:
             log.info('Not retweeting id %s because user @%s is blocked.' % (data['id'], data['user']['screen_name']))
-        elif data['text'].lower().find(config.track.lower()) > -1 and not data.has_key('retweeted_status'):
+        elif data['text'].lower().find(config.track.lower()) > -1 and not 'retweeted_status' in data:
             rt(data['id'])
-            save(data)
+            #save(data)
     elif 'direct_message' in data:
         update_approved_list()
         log.info("DM from @%s: %s" % (data['direct_message']['sender']['screen_name'], data['direct_message']['text']))
@@ -237,6 +241,7 @@ while True:
         twitter = twython.Twython(app_key=config.app_key, app_secret=config.app_secret, oauth_token=config.oauth_token, oauth_token_secret=config.oauth_token_secret)
         creds = twitter.verify_credentials()
         userid = creds['id_str']
+        user_screenname = creds['screen_name']
         update_approved_list()
         update_block_list()
         log.info('Reading last retweets.')
