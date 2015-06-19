@@ -20,42 +20,55 @@
 	nav ul li a { width: 6em; height: 2.5em; display:inline-block; padding: 0.3em; color:#999; }
 	nav ul li a.current { color:#fff; }
 	nav ul li:nth-child(2n) { background: #181818; }
-	.error { display: block; position:static; float:left; color: white; margin: 10px 0; padding: 10px; width: 500px; box-sizing: border-box; border: 1px solid red; border-radius: 5px; border: 1px solid red; text-align: left; }
+	.error, .warning { display: block; position:static; float:left; color: white; margin: 10px 0; padding: 10px; width: 500px; box-sizing: border-box; border: 1px solid red; border-radius: 5px; border: 1px solid red; text-align: left; }
+	.warning { border: 1px solid #400; color: #666; font-size: 80%; padding: 5px;}
 </style>
 
 <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/masonry/3.3.0/masonry.pkgd.min.js"></script>
 <script type="text/javascript">
+//<![CDATA[
 var usemasonry = true; //(document.documentElement.clientWidth > 1000);
 
-window.twttr = (function(d, s, id) {
-  var js, fjs = d.getElementsByTagName(s)[0],
-    t = window.twttr || {};
-  if (d.getElementById(id)) return t;
-  js = d.createElement(s);
-  js.id = id;
-  js.src = "https://platform.twitter.com/widgets.js";
-  fjs.parentNode.insertBefore(js, fjs);
- 
-  t._e = [];
-  t.ready = function(f) {
-    t._e.push(f);
-  };
- 
-  return t;
-}(document, "script", "twitter-wjs"));
+var tweets = ${tweetids};
 
-tweets = ${tweetids};
+var load_at_once = 8;
+var all_at_once = false;
+var remainder = tweets.length % load_at_once;
 
+if(tweets.length == 0) {
+	window.setTimeout(function() { 
+		document.getElementById('tweets').innerHTML = '<p class="error">Sorry, hier sind keine Daten im ausgewählten Zeitraum.</p>';
+	}, 200);
+} else{
+        window.twttr = (function(d, s, id) {
+          var js, fjs = d.getElementsByTagName(s)[0],
+            t = window.twttr || {};
+          if (d.getElementById(id)) return t;
+          js = d.createElement(s);
+          js.id = id;
+          js.src = "https://platform.twitter.com/widgets.js";
+          fjs.parentNode.insertBefore(js, fjs);
+         
+          t._e = [];
+          t.ready = function(f) {
+            t._e.push(f);
+          };
+         
+          return t;
+        }(document, "script", "twitter-wjs"));
+}
 function do_masonry(el) {
 	if(usemasonry) {
           window.msnry.appended(el);
-          window.msnry.layout();
+          //window.msnry.layout();
 	}
 }
 
 function load_next() {
   console.log("loading next tweet, queue length: " + tweets.length)
-  if(tweets.length &gt; 0) {
+  count = 1;
+  while(tweets.length != 0 && count != 0) {
+    count--;
     try {
       tweetid = tweets.shift();
       window.twttr.widgets.createTweet(
@@ -71,8 +84,8 @@ function load_next() {
         }).then(function(el) {
         	if (typeof el === "undefined") {
         		d = document.createElement('div');
-        		d.classList.add('error');
-        		d.innerHTML = "Cannot load tweet with id " + tweetid + ". Maybe it's been deleted.";
+        		d.classList.add('warning');
+        		d.innerHTML = "Tweet ID " + tweetid + " kann nicht geladen werden. Wahrscheinlich wurds gelöscht.";
         		document.getElementById('tweets').appendChild(d);
         		do_masonry(d);
         		load_next();
@@ -89,27 +102,56 @@ function load_next() {
   }
 }
 
+var check_load_next = function() {
+    el = document.getElementById('scrollbeacon');
+    var top = el.getBoundingClientRect().top, rect, el = el.parentNode;
+    while (el != document.body) {
+        rect = el.getBoundingClientRect();
+        if (top <= rect.bottom === false)
+            return false;
+        el = el.parentNode;
+    }
+    if( top <= document.documentElement.clientHeight ) {
+    	load_next();	
+    }
+};
+
+
 twttr.ready(
   function(twttr) {
     document.getElementById('tweets').innerHTML = "";
     console.log("Twitter Widget JS loaded");
+    window.onscroll=function(){
+	check_load_next();
+    };
     twttr.events.bind(
       'rendered',
       function (event) {
-        load_next();
+      	console.log(tweets.length, load_at_once, tweets.length % load_at_once, remainder);
+	if( tweets.length === 0 ) {
+	  document.getElementById('scrollbeacon').innerHTML = "Nun denn, wir sind am Ende der Liste angelangt. <a href='#'>Wieder nach oben?</a>";
+	} else if( all_at_once || tweets.length % load_at_once != remainder ) {
+	  document.getElementById('scrollbeacon').innerHTML = "Eigentlich sollten hier gleich weitere Tweets erscheinen. Sind nur noch "+tweets.length+" in der Liste.";
+	  load_next();
+	} else {
+	  check_load_next();
+	}
       }
     );
     if(usemasonry) {
       window.msnry = new Masonry( '#tweets', {
         columnWidth: 500,
         itemSelector: 'iframe, div',
-        gutter: 10,
+        gutter: 8,
         isFitWidth: true,
+        transitionDuration: 0,
       });
+      window.msnry.layout();
     }
     load_next();
   }
 );
+// ]]>
 </script>
 
 </head>
@@ -125,6 +167,7 @@ twttr.ready(
 
 	<h1>${title}</h1>
 	<h2>KW${kw}, ${year}</h2>
+	<button onclick="all_at_once = true; load_next(); this.remove();">Alle auf einmal laden? (das dauert).</button>
 	<div id="tweets">
 		<div class="error">
 			<p>Bitte warten, die Tweets werden frisch vom Twitter-Server geladen!</p>
@@ -145,6 +188,7 @@ twttr.ready(
 			</ul>
 		</div>
 	</div>
-
+	<div id="scrollbeacon" style="width: 100%; height:
+	5em; clear:both;">Wenn dieser Text sichtbar ist, sollten eigentlich jeden Moment weitere Tweets geladen werden.</div>
 </body>
 </html>

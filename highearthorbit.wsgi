@@ -1,4 +1,4 @@
-import logging, sys
+import logging, sys, os
 sys.path.insert(0, '/home/dave/Development/highearthorbit')
 sys.stdout = sys.stderr
 logging.basicConfig(stream=sys.stderr)

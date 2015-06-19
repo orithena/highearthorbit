@@ -55,11 +55,17 @@ def update_index():
 def index(year=None, kw=None):
   tweetids = []
   idx = {}
+  try:
+    year = str(int(year))
+    kw = str(int(kw))
+  except:
+    year = None
+    kw = None
   if year is None:
     (year, kw, day) = [ str(x) for x in datetime.datetime.now().isocalendar() ]
   try:
     idx = update_index()
-    tweetids = idx['tweets'][year][kw]
+    tweetids = list(reversed(idx['tweets'][year][kw]))
   except Exception as e:
     print e
   return render_template(
