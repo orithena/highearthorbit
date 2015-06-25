@@ -73,7 +73,7 @@ def index(year=None, kw=None):
     { 'year':year, 
       'kw':kw,
       'title': config.track,
-      'navigation': [ [ (y, k) for k in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ], 
+      'navigation': sorted(*[ [ (y, k) for k in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ], key=lambda x: int(x[1])),
       'tweetids': json.dumps(tweetids),
     });
 

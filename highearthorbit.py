@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import twython, time, pprint, traceback, os
+import twython, time, pprint, traceback, os, sys
 import config
 from twython import TwythonStreamer, TwythonError, TwythonRateLimitError
 import urllib, json, glob
@@ -54,12 +54,12 @@ def find_and_delete_blocked_retweets():
     global blocked
     log.info("Checking the last 100 tweets in my timeline for retweets of blocked users. Just to destroy them.")
     try:
-        tl = twitter.get_home_timeline(count=100)
+        tl = twitter.get_user_timeline(screen_name=user_screenname, count=100)
     except:
         log.error('Exception caught while checking for tweets of blocked users.')
     else:
         for t in tl:
-            if t['retweeted_status']['user']['id'] in blocked:
+            if t.has_key('retweeted_status') and t['retweeted_status']['user']['id'] in blocked:
                 queue(twitter.destroy_status, id=t['id'])
                 log.info('Will destroy status %s, because @%s is blocked.' % (t['id'], t['retweeted_status']['user']['screen_name']))
                 for archived_file in glob.glob(os.path.join(config.archive_dir, '*', t['retweeted_status']['id_str']) + '-*.*'):
@@ -146,8 +146,11 @@ def run_queue():
 def queuewatch(check_time=900):
     while True:
         time.sleep(check_time)
-        update_block_list()
-        run_queue()
+        try:
+            update_block_list()
+            run_queue()
+        except Exception as e:
+            log.warning("Exception in watchdog thread: ", e)
             
 def queue(func, *args, **kwargs):
     global _queue
@@ -235,6 +238,10 @@ class MyStreamer(TwythonStreamer):
         # Uncomment the next line!
         # self.disconnect()
 
+readback = config.read_back
+if '--quick' in sys.argv:
+    readback = 10
+    log.info("------ Quick restart, reading only 10 tweets back")
 while True:
     try:
         log.info("====== Entering High Earth Orbit in the Twitterverse... ehm. Okay, okay, I'm initializing. ======")
@@ -245,11 +252,11 @@ while True:
         update_approved_list()
         update_block_list()
         log.info('Reading last retweets.')
-        rts += [ (t['retweeted_status']['id'], time.time(),) for t in twitter.get_home_timeline(count=config.read_back) if t.has_key('retweeted_status') ]
+        rts += [ (t['retweeted_status']['id'], time.time(),) for t in twitter.get_user_timeline(screen_name=user_screenname, count=readback) if t.has_key('retweeted_status') ]
         for a in (1,2):
             time.sleep((a-1)*10)
             log.info("Catching up on missed tweets, take %s." % a)
-            old_tweets = twitter.search(q=config.track + " -filter:retweets", count=config.read_back-5)['statuses']
+            old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
             for t in sorted(old_tweets, key=lambda t: t['id']):
                 decide(t)
         log.info('Caught up on missed tweets, running queue.')
@@ -263,9 +270,9 @@ while True:
         stream.statuses.filter(track=config.track)
 
     except Exception, e:
+        readback = config.read_back
         log.warning('==Exception caught, restarting==')
-        log.warning(e)
-        log.debug(str(e), exc_info=True)
+        log.warning(str(e), exc_info=True)
         if int(time.time()) - lasttry < 120:
             log.error('==Two Exceptions in the last 2 minutes are one too many, exiting to avoid hammering...')
             break

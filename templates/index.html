@@ -141,7 +141,7 @@ twttr.ready(
     if(usemasonry) {
       window.msnry = new Masonry( '#tweets', {
         columnWidth: 500,
-        itemSelector: 'iframe, div',
+        itemSelector: 'iframe, div.warning',
         gutter: 8,
         isFitWidth: true,
         transitionDuration: 0,
@@ -159,7 +159,7 @@ twttr.ready(
 <body>
 	<nav>
 		<ul>
-			<li py:for="(y,k) in *navigation">
+			<li py:for="(y,k) in navigation">
 				<a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
 			</li>
 		</ul>
