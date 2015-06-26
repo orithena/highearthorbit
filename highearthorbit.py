@@ -204,7 +204,7 @@ def save(data):
                     log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
 
 def is_spam(data):
-    if len(t['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
+    if len(data['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
         log.info("Munched some Spam: Too many Hashtags. Not retweeting %s." % data['id'])
         return True
     if any(word in data['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
@@ -217,6 +217,7 @@ def decide(data):
         # If it's spam, the function is_spam() has already logged a message. We're just walking away.
         return
     elif config.archive_own_retweets_only and 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
+        log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
         # I only save my own retweets for the archive. This allows the webviewer to "dumb-detect" that
         # a Retweet by the Bot has been destroyed manually from the Botaccount.
         save(data)
