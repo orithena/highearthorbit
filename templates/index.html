@@ -190,5 +190,12 @@ twttr.ready(
 	</div>
 	<div id="scrollbeacon" style="width: 100%; height:
 	5em; clear:both;">Wenn dieser Text sichtbar ist, sollten eigentlich jeden Moment weitere Tweets geladen werden.</div>
+	<nav>
+		<ul>
+			<li py:for="(y,k) in navigation">
+				<a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+			</li>
+		</ul>
+	</nav>
 </body>
 </html>
