@@ -114,7 +114,7 @@ def run_queue():
         if not (func, args, kwargs) in _done.values():
             try:
                 log.debug("Trying %s from queue" % _fmt(func, args, kwargs))
-                if not config.dry_run:
+                if not config.twitter_is_read_only:
                     func(*args, **kwargs)
             except Exception as e:
                 if isinstance(e, TwythonError) and e.error_code == 403:
@@ -203,24 +203,49 @@ def save(data):
                 except Exception as e:
                     log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
 
+def is_spam(data):
+    if len(t['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
+        log.info("Munched some Spam: Too many Hashtags. Not retweeting %s." % data['id'])
+        return True
+    if any(word in data['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
+        log.info("This list of words is black. It contains %s, which is why I won't retweet %s." % (str([word for word in config.spamfilter_word_blacklist if word in data['text']]), data['id']))
+        return True
+    return False
+    
 def decide(data):
-    if 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
+    if is_spam(data):
+        # If it's spam, the function is_spam() has already logged a message. We're just walking away.
+        return
+    elif config.archive_own_retweets_only and 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
+        # I only save my own retweets for the archive. This allows the webviewer to "dumb-detect" that
+        # a Retweet by the Bot has been destroyed manually from the Botaccount.
         save(data)
     elif 'text' in data:
+        # Hey, something came in! Maybe it's interesting?
         log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
         if data['user']['id'] in blocked:
+            # If we blocked someone, we don't want to read him. Twitter, why do I keep getting that blockhead in my search results?
             log.info('Not retweeting id %s because user @%s is blocked.' % (data['id'], data['user']['screen_name']))
         elif data['text'].lower().find(config.track.lower()) > -1 and not 'retweeted_status' in data:
+            # Whohoo! A tweet that actually contains our Hashtag and is not a retweet!
             rt(data['id'])
-            #save(data)
+            if not config.archive_own_retweets_only:
+                # I save everything I can get. Okay, archiving photos are configured elsewhere.
+                save(data)
     elif 'direct_message' in data:
+        # Currently dead code because this type of message is not available in a "site stream".
+        # To enable this, this Bot also needs to follow the "user stream" in another thread.
         update_approved_list()
         log.info("DM from @%s: %s" % (data['direct_message']['sender']['screen_name'], data['direct_message']['text']))
         if data['direct_message']['sender']['id'] in listmembers:
             tweet(data['direct_message']['text'])
     elif 'friends' in data:
+        # Currently dead code because this type of message is not available in a "site stream".
+        # To enable this, this Bot also needs to follow the "user stream" in another thread.
         update_friends(data['friends'])
     else:
+        # Currently dead code because this type of message is not available in a "site stream".
+        # To enable this, this Bot also needs to follow another stream in another thread.
         log.warning("Unknown notification received:")
         log.warning(data)
 
