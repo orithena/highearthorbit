@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os, glob, sys, json
-workdir = os.path.dirname(__file__)
+workdir = os.curdir
+try: 
+  workdir = os.path.dirname(__file__)
+except: pass
 from flask import Flask
 from flaskext.genshi import Genshi, render_template
 from genshi.template import MarkupTemplate 
@@ -14,6 +17,7 @@ import logging
 import config
 import datetime, dateutil.parser
 import pytz
+import re
         
 app = Flask(__name__)
 genshi = Genshi(app)
@@ -29,8 +33,7 @@ def update_index():
       idx = json.load(fp)
   except:
     pass
-  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
-  print archive_dirs
+  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '[0-9]*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
   for dir in archive_dirs:
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*.json'))):
       with open(jsonfile) as f:
@@ -49,6 +52,55 @@ def update_index():
   if os.path.isfile(index_file + '.new'):
     os.rename(index_file + '.new', index_file)
   return idx
+
+def insensitive(pattern):
+  def either(c):
+    return '[%s%s]'%(c.lower(),c.upper()) if c.isalpha() else c
+  return ''.join(map(either,pattern))
+
+def update_user_index(screenname):
+  user_archive_dir = os.path.join(config.archive_dir, 'users')
+  try: 
+    os.makedirs(user_archive_dir)
+  except: pass
+  index_file = os.path.join(user_archive_dir, '%s.json' % screenname)
+  idx = {
+    'last_seen': '0',
+    'tweets': [],
+  }
+  try:
+    with open(index_file, 'r') as fp:
+      idx = json.load(fp)
+  except:
+    pass
+  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
+  for dir in archive_dirs:
+    for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
+      with open(jsonfile) as f:
+        tweet = json.load(f)
+        if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
+          if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
+            idx['tweets'].append(tweet['id_str'])
+  if len(idx['tweets']) > 0:
+    idx['last_seen'] = os.path.basename(archive_dirs[-1])
+    with open(index_file + '.new', 'w') as fp:
+      json.dump(idx, fp) 
+    if os.path.isfile(index_file + '.new'):
+      os.rename(index_file + '.new', index_file)
+  return idx
+
+@app.route('/user/<screenname>')
+def user(screenname):
+  screenname = re.sub(r'[^a-z0-9_]+', '', screenname.lower())
+  idx = update_user_index(screenname)
+  return render_template(
+    'index.html', 
+    { 
+      'screenname': screenname,
+      'title': config.track,
+      'tweetids': json.dumps(sorted(idx['tweets'])),
+    });
+  
 
 @app.route('/')
 @app.route('/<year>/<kw>')
