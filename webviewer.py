@@ -73,7 +73,7 @@ def update_user_index(screenname):
       idx = json.load(fp)
   except:
     pass
-  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
+  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '[0-9]*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
   for dir in archive_dirs:
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
       with open(jsonfile) as f:
