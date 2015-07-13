@@ -80,7 +80,8 @@ def update_user_index(screenname):
         tweet = json.load(f)
         if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
           if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
-            idx['tweets'].append(tweet['id_str'])
+            if not tweet['id_str'] in idx['tweets']: 
+              idx['tweets'].append(tweet['id_str'])
   if len(idx['tweets']) > 0:
     idx['last_seen'] = os.path.basename(archive_dirs[-1])
     with open(index_file + '.new', 'w') as fp:
