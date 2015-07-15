@@ -3,7 +3,7 @@
 import twython, time, pprint, traceback, os, sys
 import config
 from twython import TwythonStreamer, TwythonError, TwythonRateLimitError
-import urllib, json, glob
+import urllib, json, glob, re
 import thread
 queuelock = thread.allocate_lock()
 import logging
@@ -202,6 +202,13 @@ def save(data):
 
 def is_spam(data):
     log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
+    text = data['text'].strip()
+    if text.startswith('"') and text.endswith('"'):
+        log.info("Looks like a quoted Tweet, assuming tweet stealing.")
+        return True
+    if re.search(r'rt\W+@\w+\W*[:"]', text, re.IGNORECASE) is not None:
+        log.info("Looks like a manual retweet, assuming tweet stealing.")
+        return True
     if len(data['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
         log.info("Munched some Spam: Too many Hashtags. Not retweeting %s." % data['id'])
         return True
