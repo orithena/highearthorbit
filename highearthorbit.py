@@ -137,7 +137,7 @@ def run_queue():
                     log.info("%s is done." % _fmt(func, args, kwargs)) 
             else:
                 log.warn("I already had that one in my queue: %s" % _fmt(func, args, kwargs))
-    time.sleep(5)
+            time.sleep(5)
         
 def queuewatch(check_time=900):
     while True:
@@ -278,10 +278,16 @@ while True:
         log.info("====== Entering High Earth Orbit in the Twitterverse... ehm. Okay, okay, I'm initializing. ======")
         twitter = twython.Twython(app_key=config.app_key, app_secret=config.app_secret, oauth_token=config.oauth_token, oauth_token_secret=config.oauth_token_secret)
         creds = twitter.verify_credentials()
+        #userstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
+        #userstream.creds = creds
+        filterstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
+        filterstream.creds = creds
         userid = creds['id_str']
         user_screenname = creds['screen_name']
+
         update_approved_list()
         update_block_list()
+
         log.info('Reading last retweets.')
         rts += [ (t['retweeted_status']['id'], time.time(),) for t in twitter.get_user_timeline(screen_name=user_screenname, count=readback) if 'retweeted_status' in t ]
         for a in (1,2):
@@ -290,15 +296,13 @@ while True:
             old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
             for t in sorted(old_tweets, key=lambda t: t['id']):
                 decide(t)
+
         log.info('Caught up on missed tweets, running queue.')
         thread.start_new_thread(run_queue, ())
         thread.start_new_thread(queuewatch, (900,))
-
-        stream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
-        stream.creds = creds
         
         log.info('Going into streaming mode')
-        stream.statuses.filter(track=config.track)
+        filterstream.statuses.filter(track=config.track)
 
     except Exception, e:
         readback = config.read_back
