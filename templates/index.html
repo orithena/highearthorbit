@@ -7,21 +7,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=1024" />
     <title>${title}</title>
-    
+
     <meta name="author" content="Dave Kliczbor" />
 
 <style type="text/css">
-	body { background: black; color:white; font-family: sans-serif; font-size: 12pt; text-align: center; padding:0; margin: 0;}
-	#tweets { margin-left: auto; margin-right: auto; width:500px; }
-	a { text-decoration: none; color: #77f;}
-	ul li { margin: 0.3em 0; }
-	nav ul { list-style-type: none; display:block; background:#111; color: #fff; margin: 0; padding: 0;}
-	nav ul li { display:inline-block; text-align:center; background: #222; margin: 0; padding: 0; }
-	nav ul li a { width: 6em; height: 2.5em; display:inline-block; padding: 0.3em; color:#999; }
-	nav ul li a.current { color:#fff; }
-	nav ul li:nth-child(2n) { background: #181818; }
-	.error, .warning { display: block; position:static; color: white; margin: 10px 0; padding: 10px; width: 478px; box-sizing: content-box; border-radius: 5px; border: 1px solid red; text-align: left; }
-	.warning { border: 1px solid #400; color: #666; font-size: 80%; padding: 5px; width: 488px; }
+  body { background: black; color:white; font-family: sans-serif; font-size: 12pt; text-align: center; padding:0; margin: 0;}
+  #tweets { margin-left: auto; margin-right: auto; width:500px; }
+  .controls { clear:both; height:3em; display: block; padding: 0 2em; }
+  a { text-decoration: none; color: #77f;}
+  ul li { margin: 0.3em 0; }
+  nav ul { list-style-type: none; display:block; background:#111; color: #fff; margin: 0; padding: 0; ￼}
+  nav ul li { display:inline-block; text-align:center; background: #222; margin: 0; padding: 0; }
+  nav ul li a { width: 6em; height: 2.5em; display:inline-block; padding: 0.3em; color:#999; }
+  nav ul li a.current { color:#fff; }
+  nav ul li:nth-child(2n) { background: #181818; }
+  .error, .warning { display: block; position:static; color: white; margin: 10px 0; padding: 10px; width: 478px; box-sizing: content-box; border-radius: 5px; border: 1px solid red; text-align: left; }
+  .warning { border: 1px solid #400; color: #666; font-size: 80%; padding: 5px; width: 488px; }
+  button, input { border-radius: 5px; background-color: lightgray; padding:5px; border: 1px solid white; color: white; background-color: black; }
+  button, input[type="submit"] { background-image: linear-gradient(to bottom, #999, #333); }
 </style>
 
 <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/masonry/3.3.0/masonry.pkgd.min.js"></script>
@@ -36,9 +39,9 @@ var all_at_once = false;
 var remainder = tweets.length % load_at_once;
 
 if(tweets.length == 0) {
-	window.setTimeout(function() { 
-		document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets gefunden.</p>';
-	}, 200);
+  window.setTimeout(function() {
+    document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets gefunden.</p>';
+  }, 200);
 } else{
         window.twttr = (function(d, s, id) {
           var js, fjs = d.getElementsByTagName(s)[0],
@@ -48,20 +51,20 @@ if(tweets.length == 0) {
           js.id = id;
           js.src = "https://platform.twitter.com/widgets.js";
           fjs.parentNode.insertBefore(js, fjs);
-         
+
           t._e = [];
           t.ready = function(f) {
             t._e.push(f);
           };
-         
+
           return t;
         }(document, "script", "twitter-wjs"));
 }
 function do_masonry(el) {
-	if(usemasonry) {
+  if(usemasonry) {
           window.msnry.appended(el);
           //window.msnry.layout();
-	}
+  }
 }
 
 function load_next() {
@@ -82,16 +85,16 @@ function load_next() {
                 linkColor: '#9999ff',
                 width: '500',
         }).then(function(el) {
-        	if (typeof el === "undefined") {
-        		d = document.createElement('div');
-        		d.classList.add('warning');
-        		d.innerHTML = "Tweet ID " + tweetid + " kann nicht geladen werden. Wahrscheinlich wurds gelöscht.";
-        		document.getElementById('tweets').appendChild(d);
-        		do_masonry(d);
-        		load_next();
+          if (typeof el === "undefined") {
+            d = document.createElement('div');
+            d.classList.add('warning');
+            d.innerHTML = "Tweet ID " + tweetid + " kann nicht geladen werden. Wahrscheinlich wurds gelöscht.";
+            document.getElementById('tweets').appendChild(d);
+            do_masonry(d);
+            load_next();
                 } else {
-                	do_masonry(el);
-                	console.log("success on ", arguments);
+                  do_masonry(el);
+                  console.log("success on ", arguments);
                 }
         }, function(el) {
                 console.log("failed on ", el);
@@ -112,7 +115,7 @@ var check_load_next = function() {
         el = el.parentNode;
     }
     if( top <= document.documentElement.clientHeight ) {
-    	load_next();	
+      load_next();
     }
 };
 
@@ -122,20 +125,20 @@ twttr.ready(
     document.getElementById('tweets').innerHTML = "";
     console.log("Twitter Widget JS loaded");
     window.onscroll=function(){
-	check_load_next();
+      check_load_next();
     };
     twttr.events.bind(
       'rendered',
       function (event) {
-      	console.log(tweets.length, load_at_once, tweets.length % load_at_once, remainder);
-	if( tweets.length === 0 ) {
-	  document.getElementById('scrollbeacon').innerHTML = "Nun denn, wir sind am Ende der Liste angelangt. <a href='#'>Wieder nach oben?</a>";
-	} else if( all_at_once || tweets.length % load_at_once != remainder ) {
-	  document.getElementById('scrollbeacon').innerHTML = "Eigentlich sollten hier gleich weitere Tweets erscheinen. Sind nur noch "+tweets.length+" in der Liste.";
-	  load_next();
-	} else {
-	  check_load_next();
-	}
+        console.log(tweets.length, load_at_once, tweets.length % load_at_once, remainder);
+        if( tweets.length === 0 ) {
+          document.getElementById('scrollbeacon').innerHTML = "Nun denn, wir sind am Ende der Liste angelangt. <a href='#'>Wieder nach oben?</a>";
+        } else if( all_at_once || tweets.length % load_at_once != remainder ) {
+          document.getElementById('scrollbeacon').innerHTML = "Eigentlich sollten hier gleich weitere Tweets erscheinen. Sind nur noch "+tweets.length+" in der Liste.";
+          load_next();
+        } else {
+          check_load_next();
+        }
       }
     );
     if(usemasonry) {
@@ -157,84 +160,87 @@ twttr.ready(
 </head>
 
 <body>
-	<py:choose>
-                <py:when test="defined('navigation')">
-                        <nav>
-                                <ul>
-                                        <li py:for="(y,k) in navigation">
-                                                <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
-                                        </li>
-                                </ul>
-                        </nav>
-                </py:when>
-		<py:otherwise>
-                        <nav>
-                                <ul>
-                                        <li>
-                                                <a href="/">Zurück zum Archiv</a>
-                                        </li>
-                                </ul>
-                        </nav>
-		</py:otherwise>
-	</py:choose>
+  <py:choose>
+    <py:when test="defined('navigation')">
+      <nav>
+        <ul>
+          <li py:for="(y,k) in navigation">
+            <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+          </li>
+        </ul>
+      </nav>
+    </py:when>
+    <py:otherwise>
+      <nav>
+        <ul>
+          <li>
+            <a href="/">Zurück zum Archiv</a>
+          </li>
+        </ul>
+      </nav>
+    </py:otherwise>
+  </py:choose>
 
-	<h1>${title}</h1>
-	<py:choose>
-		<py:when test="defined('kw')">
-			<h2>KW${kw}, ${year}</h2>
-		</py:when>
-		<py:when test="defined('screenname')">
-			<h2>@${screenname}</h2>
-		</py:when>
-	</py:choose>
-	<div style="clear:both; height:3em; display: block;">
-	<button onclick="all_at_once = true; load_next(); this.remove();" style="float:left;">Alle auf einmal laden? (das dauert).</button>
-	<form onsubmit="location.href='/user/'+document.getElementById('screenname').value; return false;" style="float:right;">
-		<input type="text" id="screenname" size="20"></input>
-		<input type="submit" value="User anzeigen"></input>
-	</form>
-	</div>
-	<div id="tweets">
-		<div class="error">
-			<p>Bitte warten, die Tweets werden frisch vom Twitter-Server geladen!</p>
-			<p>Wenn hier keine Tweets erscheinen, kann dies unterschiedliche Gründe haben:</p>
-			<ul>
-				<li>Ein Browserplugin verhindert die Anzeige von eingebundenen Tweets auf Webseiten, 
-					die nicht unter twitter.com liegen. Bisher bekannt sind mir z.B.:
-					<ul>
-						<li>Avira Browserschutz</li>
-						<li>Disconnect Extension</li>
-					</ul>
-					Meist kann man in diesen aber Ausnahmen konfigurieren.
-				</li>
-				<li>Die Internetverbindung ist soeben abgebrochen.</li>
-				<li>Ich habe bei der Programmierung einen Fall nicht beachtet.</li>
-				<li>Ihr Browser ist nicht kompatibel zum verwendeten Javascript.</li>
-				<li>Javascript muss sowieso auf dieser Seite aktiviert sein.</li>
-			</ul>
-		</div>
-	</div>
-	<div id="scrollbeacon" style="width: 100%; height:
-	5em; clear:both;">Wenn dieser Text sichtbar ist, sollten eigentlich jeden Moment weitere Tweets geladen werden.</div>
-	<py:choose>
-                <py:when test="defined('navigation')">
-                        <nav>
-                                <ul>
-                                        <li py:for="(y,k) in navigation">
-                                                <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
-                                        </li>
-                                </ul>
-                        </nav>
-                </py:when>
-		<py:otherwise>
-                        <nav>
-                                <ul>
-                                        <li>
-                                                <a href="/">Zurück zum Archiv</a>
-                                        </li>
-                                </ul>
-                        </nav>
-		</py:otherwise>
-	</py:choose>
+  <h1>${title}</h1>
+  <py:choose>
+    <py:when test="defined('kw')">
+      <h2>KW${kw}, ${year}</h2>
+    </py:when>
+    <py:when test="defined('screenname')">
+      <h2>@${screenname}</h2>
+    </py:when>
+  </py:choose>
+  <div class="controls">
+    <button onclick="all_at_once = true; load_next(); this.remove();" style="float:left;">Alle auf einmal laden? (das dauert)</button>
+    <form onsubmit="location.href='/user/'+document.getElementById('screenname').value; return false;" style="float:right;">
+      <input type="text" id="screenname" size="20" value="${'@twitter_user' if not defined('screenname') else '@'+screenname}" onfocus="if(this.value==='@twitter_user') this.value='';"></input>
+      <input type="submit" value="User anzeigen"></input>
+    </form>
+  </div>
+  <div id="tweets">
+    <div class="error">
+      <p>Bitte warten, die Tweets werden frisch vom Twitter-Server geladen!</p>
+      <p>Wenn hier keine Tweets erscheinen, kann dies unterschiedliche Gründe haben:</p>
+      <ul>
+        <li>Ein Browserplugin verhindert die Anzeige von eingebundenen Tweets auf Webseiten,
+          die nicht unter twitter.com liegen. Bisher bekannt sind mir z.B.:
+          <ul>
+            <li>Avira Browserschutz</li>
+            <li>Disconnect Extension</li>
+          </ul>
+          Meist kann man in diesen aber Ausnahmen konfigurieren.
+        </li>
+        <li>Die Internetverbindung ist soeben abgebrochen.</li>
+        <li>Ich habe bei der Programmierung einen Fall nicht beachtet.</li>
+        <li>Ihr Browser ist nicht kompatibel zum verwendeten Javascript.</li>
+        <li>Javascript muss sowieso auf dieser Seite aktiviert sein.</li>
+      </ul>
+    </div>
+  </div>
+  <div id="scrollbeacon" style="width: 100%; height:
+  5em; clear:both;">Wenn dieser Text sichtbar ist, sollten eigentlich jeden Moment weitere Tweets geladen werden.</div>
+  <py:choose>
+    <py:when test="defined('navigation')">
+      <nav>
+        <ul>
+          <li py:for="(y,k) in navigation">
+            <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+          </li>
+        </ul>
+      </nav>
+    </py:when>
+    <py:otherwise>
+      <nav>
+        <ul>
+          <li>
+            <a href="/">Zurück zum Archiv</a>
+          </li>
+        </ul>
+      </nav>
+    </py:otherwise>
+  </py:choose>
+  <footer>
+    <p>Made by <a href="http://dave.kliczbor.de">Dave Kliczbor</a> alias <a href="https://twitter.com/anathem">@anathem</a>. <a href="https://github.com/orithena/highearthorbit">Fork me on github!</a></p>
+  </footer>
 </body>
 </html>
