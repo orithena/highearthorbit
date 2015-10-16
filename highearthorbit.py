@@ -6,6 +6,7 @@ from twython import TwythonStreamer, TwythonError, TwythonRateLimitError
 import urllib, json, glob, re
 import thread
 queuelock = thread.allocate_lock()
+watchlock = thread.allocate_lock()
 import logging
 logging.basicConfig(filename='highearthorbit.log', format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -138,16 +139,18 @@ def run_queue():
             else:
                 log.warn("I already had that one in my queue: %s" % _fmt(func, args, kwargs))
             time.sleep(5)
-        
+
 def queuewatch(check_time=900):
-    while True:
-        time.sleep(check_time)
-        log.debug("It's time to check the queue for any forgotten actions. (interval=%ss)" % check_time)
-        try:
-            update_block_list()
-            run_queue()
-        except Exception as e:
-            log.warning("Exception in watchdog thread: ", e)
+    if watchlock.acquire(0):
+        while True:
+            time.sleep(check_time)
+            log.debug("It's time to check the queue for any forgotten actions. (interval=%ss)" % check_time)
+            try:
+                update_block_list()
+                run_queue()
+            except Exception as e:
+                log.warning("Exception in watchdog thread: ", e)
+        watchlock.release()
             
 def queue(func, *args, **kwargs):
     global _queue
@@ -223,6 +226,10 @@ def decide(data):
         # I only save my own retweets for the archive. This allows the webviewer to "dumb-detect" that
         # a Retweet by the Bot has been destroyed manually from the Botaccount.
         save(data)
+    elif 'retweeted_status' in data:
+        # Normal retweets are only logged in debug level, else dropped silently.
+        log.debug("Retweet received: %s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
+        return
     elif is_spam(data):
         # If it's spam, the function is_spam() has already logged a message. We're just walking away.
         return
@@ -264,10 +271,11 @@ class MyStreamer(TwythonStreamer):
     def on_error(self, status_code, data):
         log.error("Error Code %s received in data package:" % status_code)
         log.error(data)
-
-        # Want to stop trying to get data because of the error?
-        # Uncomment the next line!
-        # self.disconnect()
+        
+        if status_code == 503:
+            log.error("Waiting 10 minutes, then this bot restarts internally... hopefully finding all missed tweets then.")
+            time.sleep(600)
+            self.disconnect()
 
 readback = config.read_back
 if '--quick' in sys.argv:
@@ -305,7 +313,6 @@ while True:
         filterstream.statuses.filter(track=config.track)
 
     except Exception, e:
-        readback = config.read_back
         log.warning('==Exception caught, restarting==')
         log.warning(str(e), exc_info=True)
         if int(time.time()) - lasttry < 120:
@@ -314,4 +321,5 @@ while True:
         else:
             time.sleep(5)
             lasttry = int(time.time())
+    readback = config.read_back
 
