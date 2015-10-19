@@ -313,13 +313,8 @@ while True:
         filterstream.statuses.filter(track=config.track)
 
     except Exception, e:
-        log.warning('==Exception caught, restarting==')
+        log.warning('==Exception caught, restarting in 15 minutes==')
         log.warning(str(e), exc_info=True)
-        if int(time.time()) - lasttry < 120:
-            log.error('==Two Exceptions in the last 2 minutes are one too many, exiting to avoid hammering...')
-            break
-        else:
-            time.sleep(5)
-            lasttry = int(time.time())
+        time.sleep(900)
     readback = config.read_back
 
