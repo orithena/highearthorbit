@@ -38,7 +38,7 @@ def update_index():
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
+        if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
           (year, kw, day) = [ str(x) for x in dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin')).isocalendar() ]
           if not idx['tweets'].has_key(year):
             idx['tweets'][year] = {}
@@ -78,7 +78,7 @@ def update_user_index(screenname):
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
+        if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
           if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
             if not tweet['id_str'] in idx['tweets']: 
               idx['tweets'].append(tweet['id_str'])

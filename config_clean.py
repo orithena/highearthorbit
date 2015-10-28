@@ -33,6 +33,9 @@ archive_own_retweets_only = True
 # Whether to auto-download and archive attached media files (of type photo) or not.
 archive_photos = False
 
+# Whether to limit the archive display to tweets with photo.
+show_only_photos_in_archive = False
+
 # The list of approved twitter users with additional rights (not really used yet).
 approved_list = { 
   'name': 'Approved',
