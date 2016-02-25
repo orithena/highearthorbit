@@ -22,6 +22,15 @@ import re
 app = Flask(__name__)
 genshi = Genshi(app)
 
+def flatten(lst):
+  for elem in lst:
+    if type(elem) in (list,):
+      for i in flatten(elem):
+        yield i
+    else:
+      yield elem
+
+
 def update_index():
   index_file = os.path.join(config.archive_dir, 'archiveindex.json')
   idx = {
@@ -39,13 +48,27 @@ def update_index():
       with open(jsonfile) as f:
         tweet = json.load(f)
         if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
-          (year, kw, day) = [ str(x) for x in dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin')).isocalendar() ]
-          if not idx['tweets'].has_key(year):
-            idx['tweets'][year] = {}
-          if not idx['tweets'][year].has_key(kw):
-            idx['tweets'][year][kw] = []
-          if not tweet['id_str'] in idx['tweets'][year][kw]:
-            idx['tweets'][year][kw].append(tweet['id_str'])
+          tweettime = dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin'))
+          if config.paginate_by_day:
+            year = str(tweettime.year)
+            month = "%02d" % tweettime.month
+            day = "%02d" % tweettime.day
+            if not idx['tweets'].has_key(year):
+              idx['tweets'][year] = {}
+            if not idx['tweets'][year].has_key(month):
+              idx['tweets'][year][month] = {}
+            if not idx['tweets'][year][month].has_key(day):
+              idx['tweets'][year][month][day] = []
+            if not tweet['id_str'] in idx['tweets'][year][month][day]:
+              idx['tweets'][year][month][day].append(tweet['id_str'])
+          else:
+            (year, kw, day) = [ str(x) for x in tweettime.isocalendar() ]
+            if not idx['tweets'].has_key(year):
+              idx['tweets'][year] = {}
+            if not idx['tweets'][year].has_key(kw):
+              idx['tweets'][year][kw] = []
+            if not tweet['id_str'] in idx['tweets'][year][kw]:
+              idx['tweets'][year][kw].append(tweet['id_str'])
   idx['last_seen'] = os.path.basename(archive_dirs[-1])
   with open(index_file + '.new', 'w') as fp:
     json.dump(idx, fp) 
@@ -99,13 +122,15 @@ def user(screenname):
     { 
       'screenname': screenname,
       'title': config.track,
-      'tweetids': json.dumps(sorted(idx['tweets'])),
+      'tweetids': json.dumps(sorted(idx['tweets'], reverse=False)),
     });
   
 
 @app.route('/')
 @app.route('/<year>/<kw>')
 def index(year=None, kw=None):
+  if config.paginate_by_day:
+    return index_days()
   tweetids = []
   idx = {}
   try:
@@ -118,7 +143,7 @@ def index(year=None, kw=None):
     (year, kw, day) = [ str(x) for x in datetime.datetime.now().isocalendar() ]
   try:
     idx = update_index()
-    tweetids = list(reversed(idx['tweets'][year][kw]))
+    tweetids = list(idx['tweets'][year][kw])
   except Exception as e:
     print e
   return render_template(
@@ -127,6 +152,38 @@ def index(year=None, kw=None):
       'kw':kw,
       'title': config.track,
       'navigation': sorted(*[ [ (y, k) for k in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ], key=lambda x: int(x[1])),
+      'tweetids': json.dumps(tweetids),
+    });
+
+@app.route('/<year>/<month>/<day>')
+def index_days(year=None, month=None, day=None):
+  tweetids = []
+  idx = {}
+  try:
+    year = str(int(year))
+    month = "%02d" % int(month)
+    day = "%02d" % int(day)
+  except:
+    year = None
+    month = None
+    day = None
+  if year is None:
+    now = datetime.datetime.now()
+    year = str(now.year)
+    month = "%02d" % now.month
+    day = "%02d" % now.day
+  try:
+    idx = update_index()
+    tweetids = list(idx['tweets'][year][month][day])
+  except Exception as e:
+    print e
+  return render_template(
+    'index.html', 
+    { 'year':year, 
+      'month': month,
+      'day': day,
+      'title': config.track,
+      'navigation': sorted(flatten([ [ [ (y, m, d) for d in idx['tweets'][y][m].keys() ] for m in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ])),
       'tweetids': json.dumps(tweetids),
     });
 

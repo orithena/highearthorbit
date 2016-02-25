@@ -164,8 +164,11 @@ twttr.ready(
     <py:when test="defined('navigation')">
       <nav>
         <ul>
-          <li py:for="(y,k) in navigation">
+          <li py:for="(y,k) in navigation" py:if="len(navigation[0]) == 2">
             <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+          </li>
+          <li py:for="(y,m,d) in navigation" py:if="len(navigation[0]) == 3">
+            <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
           </li>
         </ul>
       </nav>
@@ -185,6 +188,9 @@ twttr.ready(
   <py:choose>
     <py:when test="defined('kw')">
       <h2>KW${kw}, ${year}</h2>
+    </py:when>
+    <py:when test="defined('day')">
+      <h2>${day}.${month}.${year}</h2>
     </py:when>
     <py:when test="defined('screenname')">
       <h2>@${screenname}</h2>
@@ -223,8 +229,11 @@ twttr.ready(
     <py:when test="defined('navigation')">
       <nav>
         <ul>
-          <li py:for="(y,k) in navigation">
+          <li py:for="(y,k) in navigation" py:if="len(navigation[0]) == 2">
             <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+          </li>
+          <li py:for="(y,m,d) in navigation" py:if="len(navigation[0]) == 3">
+            <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
           </li>
         </ul>
       </nav>
