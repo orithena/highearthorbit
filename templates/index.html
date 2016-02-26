@@ -16,7 +16,8 @@
   .controls { clear:both; height:3em; display: block; padding: 0 2em; }
   a { text-decoration: none; color: #77f;}
   ul li { margin: 0.3em 0; }
-  nav ul { list-style-type: none; display:block; background:#111; color: #fff; margin: 0; padding: 0; ￼}
+  nav { display:block; white-space: nowrap; overflow-x: scroll; overflow-y:hidden; }
+  nav ul { list-style-type: none; display:block; background:#111; color: #fff; margin: 0; padding: 0; }
   nav ul li { display:inline-block; text-align:center; background: #222; margin: 0; padding: 0; }
   nav ul li a { width: 6em; height: 2.5em; display:inline-block; padding: 0.3em; color:#999; }
   nav ul li a.current { color:#fff; }
@@ -39,9 +40,9 @@ var all_at_once = false;
 var remainder = tweets.length % load_at_once;
 
 if(tweets.length == 0) {
-  window.setTimeout(function() {
-    document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets gefunden.</p>';
-  }, 200);
+  document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets für dieses Datum gefunden. Nutze die Navigation, um andere Tage zu begutachten.</p>';
+  });
 } else{
         window.twttr = (function(d, s, id) {
           var js, fjs = d.getElementsByTagName(s)[0],
@@ -66,6 +67,10 @@ function do_masonry(el) {
           //window.msnry.layout();
   }
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+	document.getElementsByClassName("current")[0].scrollIntoViewIfNeeded(); 
+});
 
 function load_next() {
   console.log("loading next tweet, queue length: " + tweets.length)
