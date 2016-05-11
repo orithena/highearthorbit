@@ -48,27 +48,28 @@ def update_index():
       with open(jsonfile) as f:
         tweet = json.load(f)
         if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
-          tweettime = dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin'))
-          if config.paginate_by_day:
-            year = str(tweettime.year)
-            month = "%02d" % tweettime.month
-            day = "%02d" % tweettime.day
-            if not idx['tweets'].has_key(year):
-              idx['tweets'][year] = {}
-            if not idx['tweets'][year].has_key(month):
-              idx['tweets'][year][month] = {}
-            if not idx['tweets'][year][month].has_key(day):
-              idx['tweets'][year][month][day] = []
-            if not tweet['id_str'] in idx['tweets'][year][month][day]:
-              idx['tweets'][year][month][day].append(tweet['id_str'])
-          else:
-            (year, kw, day) = [ str(x) for x in tweettime.isocalendar() ]
-            if not idx['tweets'].has_key(year):
-              idx['tweets'][year] = {}
-            if not idx['tweets'][year].has_key(kw):
-              idx['tweets'][year][kw] = []
-            if not tweet['id_str'] in idx['tweets'][year][kw]:
-              idx['tweets'][year][kw].append(tweet['id_str'])
+          if not any(word in tweet['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
+            tweettime = dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin'))
+            if config.paginate_by_day:
+              year = str(tweettime.year)
+              month = "%02d" % tweettime.month
+              day = "%02d" % tweettime.day
+              if not idx['tweets'].has_key(year):
+                idx['tweets'][year] = {}
+              if not idx['tweets'][year].has_key(month):
+                idx['tweets'][year][month] = {}
+              if not idx['tweets'][year][month].has_key(day):
+                idx['tweets'][year][month][day] = []
+              if not tweet['id_str'] in idx['tweets'][year][month][day]:
+                idx['tweets'][year][month][day].append(tweet['id_str'])
+            else:
+              (year, kw, day) = [ str(x) for x in tweettime.isocalendar() ]
+              if not idx['tweets'].has_key(year):
+                idx['tweets'][year] = {}
+              if not idx['tweets'][year].has_key(kw):
+                idx['tweets'][year][kw] = []
+              if not tweet['id_str'] in idx['tweets'][year][kw]:
+                idx['tweets'][year][kw].append(tweet['id_str'])
   idx['last_seen'] = os.path.basename(archive_dirs[-1])
   with open(index_file + '.new', 'w') as fp:
     json.dump(idx, fp) 
@@ -103,8 +104,9 @@ def update_user_index(screenname):
         tweet = json.load(f)
         if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
           if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
-            if not tweet['id_str'] in idx['tweets']: 
-              idx['tweets'].append(tweet['id_str'])
+            if not any(word in tweet['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
+              if not tweet['id_str'] in idx['tweets']:
+                idx['tweets'].append(tweet['id_str'])
   if len(idx['tweets']) > 0:
     idx['last_seen'] = os.path.basename(archive_dirs[-1])
     with open(index_file + '.new', 'w') as fp:
