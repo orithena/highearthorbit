@@ -239,7 +239,8 @@ def decide(data):
         if data['user']['id'] in blocked:
             # If we blocked someone, we don't want to read him. Twitter, why do I keep getting that blockhead in my search results?
             log.info('Not retweeting id %s because user @%s is blocked.' % (data['id'], data['user']['screen_name']))
-        elif data['text'].lower().find(config.track.lower()) > -1 and not 'retweeted_status' in data:
+        #elif data['text'].lower().find(config.track.lower()) > -1 and not 'retweeted_status' in data:
+        elif not 'retweeted_status' in data:
             # Whohoo! A tweet that actually contains our Hashtag and is not a retweet!
             rt(data['id'])
             if not config.archive_own_retweets_only:
@@ -310,7 +311,7 @@ while True:
         thread.start_new_thread(queuewatch, (900,))
         
         log.info('Going into streaming mode')
-        filterstream.statuses.filter(track=config.track)
+        filterstream.statuses.filter(track=[t.strip() for t in config.track.lower().split(' or ')])
 
     except Exception, e:
         log.warning('==Exception caught, restarting in 15 minutes==')
