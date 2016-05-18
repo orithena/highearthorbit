@@ -90,12 +90,56 @@ def update_user_index(screenname):
       os.rename(index_file + '.new', index_file)
   return idx
 
+def update_user_tweetindex(screenname):
+  user_archive_dir = os.path.join(config.archive_dir, 'users')
+  try: 
+    os.makedirs(user_archive_dir)
+  except: pass
+  index_file = os.path.join(user_archive_dir, '%s.full.json' % screenname)
+  idx = {
+    'last_seen': '0',
+    'tweets': [],
+  }
+  try:
+    with open(index_file, 'r') as fp:
+      idx = json.load(fp)
+  except:
+    pass
+  archive_dirs = sorted([ f for f in glob.glob(os.path.join(config.archive_dir, '[0-9]*')) if os.path.isdir(f) and os.path.basename(f) >= idx['last_seen'] ])
+  for dir in archive_dirs:
+    for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
+      with open(jsonfile) as f:
+        tweet = json.load(f)
+        if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
+          if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
+            if not tweet['id_str'] in idx['tweets']: 
+              idx['tweets'].append(tweet)
+  if len(idx['tweets']) > 0:
+    idx['last_seen'] = os.path.basename(archive_dirs[-1])
+    with open(index_file + '.new', 'w') as fp:
+      json.dump(idx, fp) 
+    if os.path.isfile(index_file + '.new'):
+      os.rename(index_file + '.new', index_file)
+  return idx
+
 @app.route('/user/<screenname>')
 def user(screenname):
   screenname = re.sub(r'[^a-z0-9_]+', '', screenname.lower())
   idx = update_user_index(screenname)
   return render_template(
     'index.html', 
+    { 
+      'screenname': screenname,
+      'title': config.track,
+      'tweetids': json.dumps(sorted(idx['tweets'])),
+    });
+
+@app.route('/collage/<screenname>')
+def collage(screenname):
+  screenname = re.sub(r'[^a-z0-9_]+', '', screenname.lower())
+  idx = update_user_tweetindex(screenname)
+  return render_template(
+    'collage.html', 
     { 
       'screenname': screenname,
       'title': config.track,
