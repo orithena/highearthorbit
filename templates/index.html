@@ -12,7 +12,7 @@
 
 <style type="text/css">
   body { background: black; color:white; font-family: sans-serif; font-size: 12pt; text-align: center; padding:0; margin: 0;}
-  #tweets { margin-left: auto; margin-right: auto; width:500px; }
+  #tweets { margin-left: auto; margin-right: auto; width:500px; padding-top: 10px;}
   .controls { clear:both; height:3em; display: block; padding: 0 2em; }
   a { text-decoration: none; color: #77f;}
   ul li { margin: 0.3em 0; }
@@ -23,11 +23,14 @@
   nav ul li a.current { color:#fff; font-weight: bold; }
   nav ul li:nth-child(2n) { background: #181818; }
   .error, .warning { display: block; position:static; color: white; margin: 10px 0; padding: 10px; width: 478px; box-sizing: content-box; border-radius: 5px; border: 1px solid red; text-align: left; }
-  .warning { border: 1px solid #400; color: #666; font-size: 80%; padding: 5px; width: 488px; }
+  .warning { border: 1px solid #400; color: #666; font-size: 80%; padding: 5px; width: 488px;
+  position:relative; top: 10px; }
   button, input { border-radius: 5px; background-color: lightgray; padding:5px; border: 1px solid white; color: white; background-color: black; }
   button, input[type="submit"] { background-image: linear-gradient(to bottom, #999, #333); }
   nav::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
   nav::-webkit-scrollbar { height: 10px; background: #111; }
+  twitterwidget { visibility: hidden; position: relative; z-index: 0;}
+  twitterwidget.twitter-tweet-rendered { z-index: 10; }
 </style>
 
 <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/masonry/3.3.0/masonry.pkgd.min.js"></script>
@@ -151,7 +154,7 @@ if(tweets.length == 0) {
           if(usemasonry) {
             window.msnry = new Masonry( '#tweets', {
               columnWidth: 500,
-              itemSelector: 'iframe, twitterwidget.twitter-tweet-rendered',
+              itemSelector: 'div.warning, twitterwidget',
               gutter: 8,
               isFitWidth: true,
               transitionDuration: 0,
@@ -185,12 +188,16 @@ document.addEventListener("DOMContentLoaded", function() {
     <py:when test="defined('navigation')">
       <nav>
         <ul>
-          <li py:for="(y,k) in navigation" py:if="len(navigation[0]) == 2">
-            <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
-          </li>
-          <li py:for="(y,m,d) in navigation" py:if="len(navigation[0]) == 3">
-            <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
-          </li>
+          <py:if test="len(navigation[0]) == 2">
+            <li py:for="(y,k) in navigation">
+              <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+            </li>
+          </py:if>
+          <py:if test="len(navigation[0]) == 3">
+	    <li py:for="(y,m,d) in navigation" >
+              <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
+            </li>
+          </py:if>
         </ul>
       </nav>
     </py:when>
@@ -250,12 +257,16 @@ document.addEventListener("DOMContentLoaded", function() {
     <py:when test="defined('navigation')">
       <nav>
         <ul>
-          <li py:for="(y,k) in navigation" py:if="len(navigation[0]) == 2">
-            <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
-          </li>
-          <li py:for="(y,m,d) in navigation" py:if="len(navigation[0]) == 3">
-            <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
-          </li>
+          <py:if test="len(navigation[0]) == 2">
+            <li py:for="(y,k) in navigation">
+              <a href="/${y}/${k}" class="${'current' if k==kw and y==year else ''}">KW${k}<br/>${y}</a>
+            </li>
+          </py:if>
+          <py:if test="len(navigation[0]) == 3">
+	    <li py:for="(y,m,d) in navigation" >
+              <a href="/${y}/${m}/${d}" class="${'current' if d==day and m==month and y==year else ''}">${d}.${m}.<br/>${y}</a>
+            </li>
+          </py:if>
         </ul>
       </nav>
     </py:when>
