@@ -171,6 +171,20 @@ def tweet(tweettext):
     if twitter is not None:
         queue(twitter.update_status, status=tweettext[0:140])
 
+def download_media(data, filename):
+    datafield = 'entities'
+    if 'extended_entities' in data:
+        datafield = 'extended_entities'
+    for index,mediadata in enumerate(data[datafield]['media']):
+        mediafile = '.'.join((filename, str(index), mediadata['media_url_https'].split('.')[-1]))
+        mediaurl = ':'.join((mediadata['media_url_https'], 'orig'))
+        if 'type' in mediadata and mediadata['type'] == 'photo':
+            try:
+                urllib.URLopener().retrieve(mediaurl, mediafile)
+                log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, tweetid))
+            except Exception as e:
+                log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
+
 def save(data):
     user = data['retweeted_status']['user'] if 'retweeted_status' in data else data['user']
     basedirname = os.path.join(config.archive_dir, data['id_str'][:-15].zfill(6))
@@ -193,15 +207,7 @@ def save(data):
         log.error("Archive file %s cannot be created or is not writable: %s" % (filename + '.json', str(e)))
         return
     if config.archive_photos and 'media' in data['entities']:
-        for i,m in enumerate(data['entities']['media']):
-            mediafile = '.'.join((filename, str(i), m['media_url_https'].split('.')[-1]))
-            mediaurl = ':'.join((m['media_url_https'], 'orig'))
-            if 'type' in m and m['type'] == 'photo':
-                try:
-                    urllib.URLopener().retrieve(mediaurl, mediafile)
-                    log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, data['id']))
-                except Exception as e:
-                    log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
+        download_media(data, filename)
 
 def is_spam(data):
     log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
@@ -278,44 +284,45 @@ class MyStreamer(TwythonStreamer):
             time.sleep(600)
             self.disconnect()
 
-readback = config.read_back
-if '--quick' in sys.argv:
-    readback = 10
-    log.info("------ Quick start, reading only 10 tweets back")
-while True:
-    try:
-        log.info("====== Entering High Earth Orbit in the Twitterverse... ehm. Okay, okay, I'm initializing. ======")
-        twitter = twython.Twython(app_key=config.app_key, app_secret=config.app_secret, oauth_token=config.oauth_token, oauth_token_secret=config.oauth_token_secret)
-        creds = twitter.verify_credentials()
-        #userstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
-        #userstream.creds = creds
-        filterstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
-        filterstream.creds = creds
-        userid = creds['id_str']
-        user_screenname = creds['screen_name']
-
-        update_approved_list()
-        update_block_list()
-
-        log.info('Reading last retweets.')
-        rts += [ (t['retweeted_status']['id'], time.time(),) for t in twitter.get_user_timeline(screen_name=user_screenname, count=readback) if 'retweeted_status' in t ]
-        for a in (1,2):
-            time.sleep((a-1)*10)
-            log.info("Catching up on missed tweets, take %s." % a)
-            old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
-            for t in sorted(old_tweets, key=lambda t: t['id']):
-                decide(t)
-
-        log.info('Caught up on missed tweets, running queue.')
-        thread.start_new_thread(run_queue, ())
-        thread.start_new_thread(queuewatch, (900,))
-        
-        log.info('Going into streaming mode')
-        filterstream.statuses.filter(track=[t.strip() for t in config.track.lower().split(' or ')])
-
-    except Exception, e:
-        log.warning('==Exception caught, restarting in 15 minutes==')
-        log.warning(str(e), exc_info=True)
-        time.sleep(900)
+if __name__ == "__main__":
     readback = config.read_back
+    if '--quick' in sys.argv:
+        readback = 10
+        log.info("------ Quick start, reading only 10 tweets back")
+    while True:
+        try:
+            log.info("====== Entering High Earth Orbit in the Twitterverse... ehm. Okay, okay, I'm initializing. ======")
+            twitter = twython.Twython(app_key=config.app_key, app_secret=config.app_secret, oauth_token=config.oauth_token, oauth_token_secret=config.oauth_token_secret)
+            creds = twitter.verify_credentials()
+            #userstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
+            #userstream.creds = creds
+            filterstream = MyStreamer(config.app_key, config.app_secret, config.oauth_token, config.oauth_token_secret)
+            filterstream.creds = creds
+            userid = creds['id_str']
+            user_screenname = creds['screen_name']
+
+            update_approved_list()
+            update_block_list()
+
+            log.info('Reading last retweets.')
+            rts += [ (t['retweeted_status']['id'], time.time(),) for t in twitter.get_user_timeline(screen_name=user_screenname, count=readback) if 'retweeted_status' in t ]
+            for a in (1,2):
+                time.sleep((a-1)*10)
+                log.info("Catching up on missed tweets, take %s." % a)
+                old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
+                for t in sorted(old_tweets, key=lambda t: t['id']):
+                    decide(t)
+
+            log.info('Caught up on missed tweets, running queue.')
+            thread.start_new_thread(run_queue, ())
+            thread.start_new_thread(queuewatch, (900,))
+            
+            log.info('Going into streaming mode')
+            filterstream.statuses.filter(track=[t.strip() for t in config.track.lower().split(' or ')])
+
+        except Exception, e:
+            log.warning('==Exception caught, restarting in 15 minutes==')
+            log.warning(str(e), exc_info=True)
+            time.sleep(900)
+        readback = config.read_back
 
