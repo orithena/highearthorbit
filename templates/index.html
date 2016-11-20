@@ -34,6 +34,7 @@
 <script type="text/javascript">
 //<![CDATA[
 var usemasonry = true; //(document.documentElement.clientWidth > 1000);
+console.log("usemasonry="+usemasonry);
 
 var tweets = ${tweetids};
 
@@ -41,32 +42,12 @@ var load_at_once = 8;
 var all_at_once = false;
 var remainder = tweets.length % load_at_once;
 
-if(tweets.length == 0) {
-  document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets für dieses Datum gefunden. Nutze die Navigation, um andere Tage zu begutachten.</p>';
-  });
-} else{
-        window.twttr = (function(d, s, id) {
-          var js, fjs = d.getElementsByTagName(s)[0],
-            t = window.twttr || {};
-          if (d.getElementById(id)) return t;
-          js = d.createElement(s);
-          js.id = id;
-          js.src = "https://platform.twitter.com/widgets.js";
-          fjs.parentNode.insertBefore(js, fjs);
 
-          t._e = [];
-          t.ready = function(f) {
-            t._e.push(f);
-          };
-
-          return t;
-        }(document, "script", "twitter-wjs"));
-}
 function do_masonry(el) {
   if(usemasonry) {
-          window.msnry.appended(el);
-          //window.msnry.layout();
+  	console.log("do_masonry on: " + el);
+        window.msnry.appended(el);
+        //window.msnry.layout();
   }
 }
 
@@ -96,10 +77,10 @@ function load_next() {
             document.getElementById('tweets').appendChild(d);
             do_masonry(d);
             load_next();
-                } else {
-                  do_masonry(el);
-                  console.log("success on ", arguments);
-                }
+          } else {
+            do_masonry(el);
+            console.log("success on ", arguments);
+          }
         }, function(el) {
                 console.log("failed on ", el);
         });
@@ -124,40 +105,66 @@ var check_load_next = function() {
 };
 
 
-if( tweets.length > 0 ) twttr.ready(
-  function(twttr) {
-    document.getElementById('tweets').innerHTML = "";
-    console.log("Twitter Widget JS loaded");
-    window.onscroll=function(){
-      check_load_next();
-    };
-    twttr.events.bind(
-      'rendered',
-      function (event) {
-        console.log(tweets.length, load_at_once, tweets.length % load_at_once, remainder);
-        if( tweets.length === 0 ) {
-          document.getElementById('scrollbeacon').innerHTML = "Nun denn, wir sind am Ende der Liste angelangt. <a href='#'>Wieder nach oben?</a>";
-        } else if( all_at_once || tweets.length % load_at_once != remainder ) {
-          document.getElementById('scrollbeacon').innerHTML = "Eigentlich sollten hier gleich weitere Tweets erscheinen. Sind nur noch "+tweets.length+" in der Liste.";
+if(tweets.length == 0) {
+  document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById('tweets').innerHTML = '<p class="error">Sorry, keine Tweets für dieses Datum gefunden. Nutze die Navigation, um andere Tage zu begutachten.</p>';
+  });
+} else{
+  document.addEventListener("DOMContentLoaded", function() {
+      window.twttr = (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0],
+          t = window.twttr || {};
+        if (d.getElementById(id)) return t;
+        js = d.createElement(s);
+        js.id = id;
+        js.src = "https://platform.twitter.com/widgets.js";
+        fjs.parentNode.insertBefore(js, fjs);
+
+        t._e = [];
+        t.ready = function(f) {
+          t._e.push(f);
+        };
+
+        return t;
+      }(document, "script", "twitter-wjs"));
+      if( tweets.length > 0 ) twttr.ready(
+        function(twttr) {
+          document.getElementById('tweets').innerHTML = "";
+          console.log("Twitter Widget JS loaded");
+          window.onscroll=function(){
+            check_load_next();
+          };
+          twttr.events.bind(
+            'rendered',
+            function (event) {
+              console.log(tweets.length, load_at_once, tweets.length % load_at_once, remainder);
+              if( tweets.length === 0 ) {
+                document.getElementById('scrollbeacon').innerHTML = "Nun denn, wir sind am Ende der Liste angelangt. <a href='#'>Wieder nach oben?</a>";
+              } else if( all_at_once || tweets.length % load_at_once != remainder ) {
+                document.getElementById('scrollbeacon').innerHTML = "Eigentlich sollten hier gleich weitere Tweets erscheinen. Sind nur noch "+tweets.length+" in der Liste.";
+                load_next();
+              } else {
+                check_load_next();
+              }
+            }
+          );
+          if(usemasonry) {
+            window.msnry = new Masonry( '#tweets', {
+              columnWidth: 500,
+              itemSelector: 'iframe, twitterwidget.twitter-tweet-rendered',
+              gutter: 8,
+              isFitWidth: true,
+              transitionDuration: 0,
+            });
+            window.msnry.layout();
+            console.log("Masonry initialized.");
+          }
           load_next();
-        } else {
-          check_load_next();
+          console.log("First load done.");
         }
-      }
-    );
-    if(usemasonry) {
-      window.msnry = new Masonry( '#tweets', {
-        columnWidth: 500,
-        itemSelector: 'iframe, div.warning',
-        gutter: 8,
-        isFitWidth: true,
-        transitionDuration: 0,
-      });
-      window.msnry.layout();
-    }
-    load_next();
-  }
-);
+      );
+  });
+}
 
 document.addEventListener("DOMContentLoaded", function() {
 	Array.prototype.forEach.call(document.getElementsByTagName("nav"), function(nav) {
