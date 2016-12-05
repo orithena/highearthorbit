@@ -181,7 +181,7 @@ def download_media(data, filename):
         if 'type' in mediadata and mediadata['type'] == 'photo':
             try:
                 urllib.URLopener().retrieve(mediaurl, mediafile)
-                log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, tweetid))
+                log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, data['id']))
             except Exception as e:
                 log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
 
