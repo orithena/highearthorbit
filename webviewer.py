@@ -64,6 +64,11 @@ def update_index():
                 idx['tweets'][year][month][day].append(tweet['id_str'])
             else:
               (year, kw, day) = [ str(x) for x in tweettime.isocalendar() ]
+              # Can we put the tweet into the correct KW by checking whether the previous, next or current KW is mentioned in the tweet?
+              maxdelta = datetime.timedelta(days=6)
+              for (y,k,d) in [ ts.isocalendar() for ts in (tweettime - maxdelta, tweettime + maxdelta, tweettime)]: 
+                if re.search(r"(^|\D)%d(\D|$)" % k, tweet['text']):
+                  kw = str(k)
               if not idx['tweets'].has_key(year):
                 idx['tweets'][year] = {}
               if not idx['tweets'][year].has_key(kw):
@@ -197,7 +202,7 @@ def index(year=None, kw=None):
     { 'year':year, 
       'kw':kw,
       'title': config.track,
-      'navigation': sorted(*[ [ (y, k) for k in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ], key=lambda x: int(x[1])),
+      'navigation': sorted(set(flatten([ [ (y, k) for k in idx['tweets'][y].keys() ] for y in idx['tweets'].keys() ])), key=lambda x: int(x[1])),
       'tweetids': json.dumps(tweetids),
     });
 
