@@ -47,7 +47,21 @@ def update_index():
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
+        if ((not config.show_only_photos_in_archive) 
+            or 
+            (tweet.has_key('entities') 
+              and tweet['entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]) 
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('entities') 
+              and tweet['retweeted_status']['entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['entities']['media'] ])
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('extended_entities') 
+              and tweet['retweeted_status']['extended_entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['extended_entities']['media'] ])):
           if not any(word in tweet['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
             tweettime = dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin'))
             if config.paginate_by_day:
