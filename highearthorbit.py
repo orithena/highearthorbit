@@ -218,6 +218,9 @@ def save(data):
 def is_spam(data):
     log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
     text = data['text'].strip()
+    if not any(hashtag.lower() in text.lower() for hashtag in config.track.split(" OR ")):
+        log.info("Retweet did not contain our search, assuming spam.")
+        return True
     if text.startswith('"') and text.endswith('"'):
         log.info("Looks like a quoted Tweet, assuming tweet stealing.")
         return True
@@ -227,7 +230,7 @@ def is_spam(data):
     if len(data['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
         log.info("Munched some Spam: Too many Hashtags. Not retweeting %s." % data['id'])
         return True
-    if any(word in data['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
+    if any(word.lower() in text.lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
         log.info("This list of words is black. It contains %s, which is why I won't retweet %s." % (str([word for word in config.spamfilter_word_blacklist if word in data['text']]), data['id']))
         return True
     return False
