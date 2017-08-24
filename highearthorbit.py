@@ -172,10 +172,16 @@ def tweet(tweettext):
         queue(twitter.update_status, status=tweettext[0:140])
 
 def download_media(data, filename):
-    datafield = 'entities'
-    if 'extended_entities' in data:
-        datafield = 'extended_entities'
-    for index,mediadata in enumerate(data[datafield]['media']):
+    datadict = data['entities']
+    if 'extended_entities' in data and 'media' in data['extended_entities']:
+        datadict = data['extended_entities']
+    if 'extended_tweet' in data:
+        if 'entities' in data['extended_tweet'] and 'media' in data['extended_tweet']['entities']:
+            datadict = data['extended_tweet']['entities']
+        if 'extended_entities' in data['extended_tweet'] and 'media' in data['extended_tweet']['extended_entities']:
+            datadict = data['extended_tweet']['extended_entities']
+        
+    for index,mediadata in enumerate(datadict['media']):
         mediafile = '.'.join((filename, str(index), mediadata['media_url_https'].split('.')[-1]))
         mediaurl = ':'.join((mediadata['media_url_https'], 'orig'))
         if 'type' in mediadata and mediadata['type'] == 'photo':

@@ -30,6 +30,34 @@ def flatten(lst):
     else:
       yield elem
 
+def has_photo(tweet):
+  return (
+            (tweet.has_key('entities') 
+              and tweet['entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]) 
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('entities') 
+              and tweet['retweeted_status']['entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['entities']['media'] ])
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('extended_entities') 
+              and tweet['retweeted_status']['extended_entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['extended_entities']['media'] ])
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('extended_tweet') 
+              and tweet['retweeted_status']['extended_tweet'].has_key('entities') 
+              and tweet['retweeted_status']['extended_tweet']['entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['extended_tweet']['entities']['media'] ])
+            or
+            (tweet.has_key('retweeted_status') 
+              and tweet['retweeted_status'].has_key('extended_tweet') 
+              and tweet['retweeted_status']['extended_tweet'].has_key('extended_entities') 
+              and tweet['retweeted_status']['extended_tweet']['extended_entities'].has_key('media') 
+              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['extended_tweet']['extended_entities']['media'] ])
+        )
 
 def update_index():
   index_file = os.path.join(config.archive_dir, 'archiveindex.json')
@@ -47,21 +75,7 @@ def update_index():
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if ((not config.show_only_photos_in_archive) 
-            or 
-            (tweet.has_key('entities') 
-              and tweet['entities'].has_key('media') 
-              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]) 
-            or
-            (tweet.has_key('retweeted_status') 
-              and tweet['retweeted_status'].has_key('entities') 
-              and tweet['retweeted_status']['entities'].has_key('media') 
-              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['entities']['media'] ])
-            or
-            (tweet.has_key('retweeted_status') 
-              and tweet['retweeted_status'].has_key('extended_entities') 
-              and tweet['retweeted_status']['extended_entities'].has_key('media') 
-              and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['retweeted_status']['extended_entities']['media'] ])):
+        if ((not config.show_only_photos_in_archive) or has_photo(tweet) ):
           if not any(word in tweet['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
             tweettime = dateutil.parser.parse(tweet['created_at']).astimezone(pytz.timezone('Europe/Berlin'))
             if config.paginate_by_day:
@@ -121,7 +135,7 @@ def update_user_index(screenname):
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if (not config.show_only_photos_in_archive) or (tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]):
+        if (not config.show_only_photos_in_archive) or has_photo(tweet):
           if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
             if not any(word in tweet['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
               if not tweet['id_str'] in idx['tweets']:
@@ -154,7 +168,7 @@ def update_user_tweetindex(screenname):
     for jsonfile in sorted(glob.glob(os.path.join(dir, '*-'+insensitive(screenname)+'.json'))):
       with open(jsonfile) as f:
         tweet = json.load(f)
-        if tweet.has_key('entities') and tweet['entities'].has_key('media') and True in [ m.has_key('type') and m['type'] == 'photo' for m in tweet['entities']['media'] ]:
+        if has_photo(tweet):
           if tweet['user']['screen_name'].lower() == screenname or (tweet.has_key('retweeted_status') and tweet['retweeted_status']['user']['screen_name'].lower() == screenname):
             if not tweet['id_str'] in idx['tweets']: 
               idx['tweets'].append(tweet)
