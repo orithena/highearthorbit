@@ -172,16 +172,22 @@ def tweet(tweettext):
         queue(twitter.update_status, status=tweettext[0:140])
 
 def download_media(data, filename):
-    datafield = 'entities'
-    if 'extended_entities' in data:
-        datafield = 'extended_entities'
-    for index,mediadata in enumerate(data[datafield]['media']):
+    datadict = data['entities']
+    if 'extended_entities' in data and 'media' in data['extended_entities']:
+        datadict = data['extended_entities']
+    if 'extended_tweet' in data:
+        if 'entities' in data['extended_tweet'] and 'media' in data['extended_tweet']['entities']:
+            datadict = data['extended_tweet']['entities']
+        if 'extended_entities' in data['extended_tweet'] and 'media' in data['extended_tweet']['extended_entities']:
+            datadict = data['extended_tweet']['extended_entities']
+        
+    for index,mediadata in enumerate(datadict['media']):
         mediafile = '.'.join((filename, str(index), mediadata['media_url_https'].split('.')[-1]))
         mediaurl = ':'.join((mediadata['media_url_https'], 'orig'))
         if 'type' in mediadata and mediadata['type'] == 'photo':
             try:
                 urllib.URLopener().retrieve(mediaurl, mediafile)
-                log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, tweetid))
+                log.info("Archived media: %s -> %s from tweet %s." % (mediaurl, mediafile, data['id']))
             except Exception as e:
                 log.error("Archive image cannot be downloaded from %s or created in %s: %s" % (mediaurl, mediafile, str(e)))
 
@@ -212,6 +218,9 @@ def save(data):
 def is_spam(data):
     log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
     text = data['text'].strip()
+    if not any(hashtag in text.lower() for hashtag in config.track.lower().split(" or ")):
+        log.info("Retweet did not contain our search, assuming spam.")
+        return True
     if text.startswith('"') and text.endswith('"'):
         log.info("Looks like a quoted Tweet, assuming tweet stealing.")
         return True
@@ -221,12 +230,16 @@ def is_spam(data):
     if len(data['entities']['hashtags']) > config.spamfilter_max_hashtags:   	# Too many hashtags?
         log.info("Munched some Spam: Too many Hashtags. Not retweeting %s." % data['id'])
         return True
-    if any(word in data['text'].lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
+    if any(word.lower() in text.lower() for word in config.spamfilter_word_blacklist):	# Blacklisted words?
         log.info("This list of words is black. It contains %s, which is why I won't retweet %s." % (str([word for word in config.spamfilter_word_blacklist if word in data['text']]), data['id']))
         return True
     return False
     
 def decide(data):
+    if 'extended_tweet' in data and 'full_text' in data['extended_tweet']:
+        data['text'] = data['extended_tweet']['full_text']
+    if 'full_text' in data:
+        data['text'] = data['full_text']
     if config.archive_own_retweets_only and 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
         log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
         # I only save my own retweets for the archive. This allows the webviewer to "dumb-detect" that
@@ -309,7 +322,7 @@ if __name__ == "__main__":
             for a in (1,2):
                 time.sleep((a-1)*10)
                 log.info("Catching up on missed tweets, take %s." % a)
-                old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
+                old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5, tweet_mode='extended')['statuses']
                 for t in sorted(old_tweets, key=lambda t: t['id']):
                     decide(t)
 
