@@ -73,4 +73,3 @@ def save_search(q, out_dir):
     if dateutil.parser.parse(t['created_at']).astimezone(pytz.timezone('Europe/Berlin')) < pytz.utc.localize(datetime.datetime(2014,12,31)):
       print("Reached new year 2015. Stopping.")
       break
-    
