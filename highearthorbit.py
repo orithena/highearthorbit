@@ -218,7 +218,7 @@ def save(data):
 def is_spam(data):
     log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
     text = data['text'].strip()
-    if not any(hashtag.lower() in text.lower() for hashtag in config.track.split(" OR ")):
+    if not any(hashtag in text.lower() for hashtag in config.track.lower().split(" or ")):
         log.info("Retweet did not contain our search, assuming spam.")
         return True
     if text.startswith('"') and text.endswith('"'):
@@ -236,6 +236,10 @@ def is_spam(data):
     return False
     
 def decide(data):
+    if 'extended_tweet' in data and 'full_text' in data['extended_tweet']:
+        data['text'] = data['extended_tweet']['full_text']
+    if 'full_text' in data:
+        data['text'] = data['full_text']
     if config.archive_own_retweets_only and 'retweeted_status' in data and data['user']['screen_name'] == user_screenname:
         log.info("%s @%s: %s" % (data['id'], data['user']['screen_name'], data['text'].replace('\n', ' ')))
         # I only save my own retweets for the archive. This allows the webviewer to "dumb-detect" that
@@ -318,7 +322,7 @@ if __name__ == "__main__":
             for a in (1,2):
                 time.sleep((a-1)*10)
                 log.info("Catching up on missed tweets, take %s." % a)
-                old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5)['statuses']
+                old_tweets = twitter.search(q=config.track + " -filter:retweets", count=readback-5, tweet_mode='extended')['statuses']
                 for t in sorted(old_tweets, key=lambda t: t['id']):
                     decide(t)
 
